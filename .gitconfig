@@ -1,0 +1,6 @@
+[remote "hhatto"]
+    url = https://github.com/hhatto/autopep8.git
+    fetch = +refs/heads/*:refs/remotes/hhatto/*
+[gsync]
+    remote = hhatto
+    branch = master
