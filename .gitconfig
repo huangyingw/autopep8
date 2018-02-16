@@ -4,3 +4,5 @@
 [gsync]
     remote = hhatto
     branch = master
+[commit]
+	message = n
