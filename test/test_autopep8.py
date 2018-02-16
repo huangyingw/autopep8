@@ -564,6 +564,16 @@ sys.maxint
         self.assertEqual('  #\nif True:\n    pass\n',
                          reindenter.run())
 
+    def test_reindenter_not_affect_with_formfeed(self):
+        lines = """print('hello')
+
+print('python')
+"""
+        reindenter = autopep8.Reindenter(lines)
+
+        self.assertEqual(lines,
+                         reindenter.run())
+
     def test_fix_e225_avoid_failure(self):
         fix_pep8 = autopep8.FixPEP8(filename='',
                                     options=autopep8.parse_args(['']),
@@ -3843,6 +3853,13 @@ MY_CONST = [
     def test_e712_with_special_case_equal_false(self):
         line = 'if foo == False:\n    pass\n'
         fixed = 'if not foo:\n    pass\n'
+        with autopep8_context(line,
+                              options=['-aa', '--select=E712']) as result:
+            self.assertEqual(fixed, result)
+
+    def test_e712_with_dict_value(self):
+        line = 'if d["key"] != True:\n    pass\n'
+        fixed = 'if not d["key"]:\n    pass\n'
         with autopep8_context(line,
                               options=['-aa', '--select=E712']) as result:
             self.assertEqual(fixed, result)

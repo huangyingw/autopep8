@@ -66,7 +66,7 @@ except NameError:
     unicode = str
 
 
-__version__ = '1.3.3'
+__version__ = '1.3.4'
 
 
 CR = '\r'
@@ -1018,11 +1018,11 @@ class FixPEP8(object):
                                                                  self.source)
 
         # Handle very easy "not" special cases.
-        if re.match(r'^\s*if [\w.]+ == False:$', target):
-            self.source[line_index] = re.sub(r'if ([\w.]+) == False:',
+        if re.match(r'^\s*if [\w."\'\[\]]+ == False:$', target):
+            self.source[line_index] = re.sub(r'if ([\w."\'\[\]]+) == False:',
                                              r'if not \1:', target, count=1)
-        elif re.match(r'^\s*if [\w.]+ != True:$', target):
-            self.source[line_index] = re.sub(r'if ([\w.]+) != True:',
+        elif re.match(r'^\s*if [\w."\'\[\]]+ != True:$', target):
+            self.source[line_index] = re.sub(r'if ([\w."\'\[\]]+) != True:',
                                              r'if not \1:', target, count=1)
         else:
             right_offset = offset + 2
@@ -2680,7 +2680,8 @@ def _execute_pep8(pep8_options, source):
 
 
 def _remove_leading_and_normalize(line):
-    return line.lstrip().rstrip(CR + LF) + '\n'
+    # ignore FF in first lstrip()
+    return line.lstrip(' \t\v').rstrip(CR + LF) + '\n'
 
 
 class Reindenter(object):
@@ -3475,7 +3476,7 @@ def read_config(args, parser):
         option_list = dict([(o.dest, o.type or type(o.default))
                             for o in parser._actions])
 
-        for section in ['pep8', 'pycodestyle']:
+        for section in ['pep8', 'pycodestyle', 'flake8']:
             if not config.has_section(section):
                 continue
             for (k, _) in config.items(section):
