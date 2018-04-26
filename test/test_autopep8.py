@@ -16,11 +16,6 @@ import os
 import re
 import sys
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
 import contextlib
 import io
 import shutil
@@ -28,6 +23,7 @@ from subprocess import Popen, PIPE
 from tempfile import mkstemp
 import tempfile
 import tokenize
+import unittest
 import warnings
 
 try:
@@ -61,6 +57,10 @@ else:
 class UnitTests(unittest.TestCase):
 
     maxDiff = None
+
+    def test_compile_value_error(self):
+        source = '"\\xhh" \\'
+        self.assertFalse(autopep8.check_syntax(source))
 
     def test_find_newline_only_cr(self):
         source = ['print 1\r', 'print 2\r', 'print3\r']
@@ -218,6 +218,10 @@ def foo():
         self.assertEqual(
             '# abc "# noqa"',
             autopep8.fix_e265('# abc "# noqa"'))
+
+        self.assertEqual(
+            '# *abc',
+            autopep8.fix_e265('#*abc'))
 
     def test_format_block_comments_should_leave_outline_alone(self):
         line = """\
@@ -564,6 +568,7 @@ sys.maxint
         self.assertEqual('  #\nif True:\n    pass\n',
                          reindenter.run())
 
+    @unittest.skipIf('AUTOPEP8_COVERAGE' in os.environ, 'exists form-feed')
     def test_reindenter_not_affect_with_formfeed(self):
         lines = """print('hello')
 
@@ -1047,7 +1052,7 @@ try:
         # report properly, the below command will take a long time.
         p = Popen(list(AUTOPEP8_CMD_TUPLE) +
                   ['-vvv', '--select=E101', '--diff',
-                   '--global-config={0}'.format(os.devnull),
+                   '--global-config={}'.format(os.devnull),
                    os.path.join(ROOT_DIR, 'test', 'e101_example.py')],
                   stdout=PIPE, stderr=PIPE)
         output = [x.decode('utf-8') for x in p.communicate()][0]
@@ -1961,13 +1966,13 @@ class Foo():
 class Foo(object):
 
   def bar(self):
-    return self.elephant is not None
+    return self.elephant!='test'
 """
         fixed = """\
 class Foo(object):
 
     def bar(self):
-        return self.elephant is not None
+        return self.elephant != 'test'
 """
         with autopep8_context(line) as result:
             self.assertEqual(fixed, result)
@@ -2077,6 +2082,24 @@ bar[zap[0][0]:zig[0][0], :]
         line = 'foo(bar\n=None)\n'
         fixed = 'foo(bar=None)\n'
         with autopep8_context(line) as result:
+            self.assertEqual(fixed, result)
+
+    def test_e252(self):
+        line = 'def a(arg1: int=1, arg2: int =1, arg3: int= 1):\n    print arg\n'
+        fixed = 'def a(arg1: int = 1, arg2: int = 1, arg3: int = 1):\n    print arg\n'
+        with autopep8_context(line) as result:
+            self.assertEqual(fixed, result)
+
+    def test_e252_with_argument_on_next_line(self):
+        line = 'def a(arg: int\n=1):\n    print arg\n'
+        fixed = 'def a(arg: int\n= 1):\n    print arg\n'
+        with autopep8_context(line, options=['--select=E252']) as result:
+            self.assertEqual(fixed, result)
+
+    def test_e252_with_escaped_newline(self):
+        line = 'def a(arg: int\\\n=1):\n    print arg\n'
+        fixed = 'def a(arg: int\\\n= 1):\n    print arg\n'
+        with autopep8_context(line, options=['--select=E252']) as result:
             self.assertEqual(fixed, result)
 
     def test_e261(self):
@@ -3487,12 +3510,13 @@ class AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA(
     def test_e501_aggressive_long_comment_and_long_line(self):
         line = """\
 def foo():
-    #. This is not a novel to be tossed aside lightly. It should be throw with great force.
+    # This is not a novel to be tossed aside lightly. It should be throw with great force.
     self.xxxxxxxxx(_('yyyyyyyyyyyyy yyyyyyyyyyyy yyyyyyyy yyyyyyyy y'), 'zzzzzzzzzzzzzzzzzzz', bork='urgent')
 """
         fixed = """\
 def foo():
-    #. This is not a novel to be tossed aside lightly. It should be throw with great force.
+    # This is not a novel to be tossed aside lightly. It should be throw with
+    # great force.
     self.xxxxxxxxx(
         _('yyyyyyyyyyyyy yyyyyyyyyyyy yyyyyyyy yyyyyyyy y'),
         'zzzzzzzzzzzzzzzzzzz',
@@ -3889,6 +3913,13 @@ MY_CONST = [
                               options=['-aa', '--select=E713']) as result:
             self.assertEqual(fixed, result)
 
+    def test_e713_with_in(self):
+        line = 'if not "." in y and "," in y:\n    pass\n'
+        fixed = 'if "." not in y and "," in y:\n    pass\n'
+        with autopep8_context(line,
+                              options=['-aa', '--select=E713']) as result:
+            self.assertEqual(fixed, result)
+
     def test_e713_with_tuple(self):
         line = """
 if not role in ("domaincontroller_master",
@@ -3931,9 +3962,30 @@ if role not in ("domaincontroller_master",
                               options=['-aa', '--select=E713']) as result:
             self.assertEqual(fixed, result)
 
+    def test_e713_chain4(self):
+        line = 'if not "." in y and not "," in y:\n    pass\n'
+        fixed = 'if "." not in y and "," not in y:\n    pass\n'
+        with autopep8_context(line,
+                              options=['-aa', '--select=E713']) as result:
+            self.assertEqual(fixed, result)
+
     def test_e714(self):
         line = 'if not x is y:\n    pass\n'
         fixed = 'if x is not y:\n    pass\n'
+        with autopep8_context(line,
+                              options=['-aa', '--select=E714']) as result:
+            self.assertEqual(fixed, result)
+
+    def test_e714_with_is(self):
+        line = 'if not x is y or x is z:\n    pass\n'
+        fixed = 'if x is not y or x is z:\n    pass\n'
+        with autopep8_context(line,
+                              options=['-aa', '--select=E714']) as result:
+            self.assertEqual(fixed, result)
+
+    def test_e714_chain(self):
+        line = 'if not x is y or not x is z:\n    pass\n'
+        fixed = 'if x is not y or x is not z:\n    pass\n'
         with autopep8_context(line,
                               options=['-aa', '--select=E714']) as result:
             self.assertEqual(fixed, result)
@@ -4039,6 +4091,12 @@ if role not in ("domaincontroller_master",
     def test_e731_with_select_option(self):
         line = 'a = lambda x: x * 2\n'
         fixed = 'def a(x): return x * 2\n'
+        with autopep8_context(line, options=['--select=E731']) as result:
+            self.assertEqual(fixed, result)
+
+    def test_e731_with_default_arguments(self):
+        line = 'a = lambda k, d=None: bar.get("%s/%s" % (prefix, k), d)\n'
+        fixed = 'def a(k, d=None): return bar.get("%s/%s" % (prefix, k), d)\n'
         with autopep8_context(line, options=['--select=E731']) as result:
             self.assertEqual(fixed, result)
 
@@ -4194,6 +4252,32 @@ else:
         with autopep8_context(line, options=['-aaa']) as result:
             self.assertEqual(fixed, result)
 
+    def test_w503_over_5lines(self):
+        line = """\
+X = (
+    1  # 1
+    + 2  # 2
+    + 3  # 3
+    + 4  # 4
+    + 5  # 5
+    + 6  # 6
+    + 7  # 7
+)
+"""
+        fixed = """\
+X = (
+    1 +  # 1
+    2 +  # 2
+    3 +  # 3
+    4 +  # 4
+    5 +  # 5
+    6 +  # 6
+    7  # 7
+)
+"""
+        with autopep8_context(line, options=['-aaa']) as result:
+            self.assertEqual(fixed, result)
+
     def test_w601(self):
         line = 'a = {0: 1}\na.has_key(0)\n'
         fixed = 'a = {0: 1}\n0 in a\n'
@@ -4263,8 +4347,6 @@ a.has_key(
         with autopep8_context(line, options=['--aggressive']) as result:
             self.assertEqual(fixed, result)
 
-    @unittest.skipIf(sys.version_info < (2, 6, 4),
-                     'older versions of 2.6 may be buggy')
     def test_w601_with_non_ascii(self):
         line = """\
 # -*- coding: utf-8 -*-
@@ -4470,6 +4552,12 @@ raise ValueError("error")
     def test_w604_with_multiple_lines(self):
         line = '`(1\n      )`\n'
         fixed = 'repr((1\n      ))\n'
+        with autopep8_context(line, options=['--aggressive']) as result:
+            self.assertEqual(fixed, result)
+
+    def test_w605_simple(self):
+        line = "escape = '\.jpg'\n"
+        fixed = "escape = r'\.jpg'\n"
         with autopep8_context(line, options=['--aggressive']) as result:
             self.assertEqual(fixed, result)
 
@@ -4830,7 +4918,7 @@ class ConfigurationTests(unittest.TestCase):
     def test_local_config(self):
         args = autopep8.parse_args(
             [os.path.join(FAKE_CONFIGURATION, 'foo.py'),
-             '--global-config={0}'.format(os.devnull)],
+             '--global-config={}'.format(os.devnull)],
             apply_config=True)
         self.assertEqual(args.indent_size, 2)
 
@@ -4860,7 +4948,7 @@ class ConfigurationTests(unittest.TestCase):
     def test_local_pycodestyle_config_line_length(self):
         args = autopep8.parse_args(
             [os.path.join(FAKE_PYCODESTYLE_CONFIGURATION, 'foo.py'),
-             '--global-config={0}'.format(os.devnull)],
+             '--global-config={}'.format(os.devnull)],
             apply_config=True)
         self.assertEqual(args.max_line_length, 40)
 
@@ -4874,7 +4962,7 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_config_false_without_local(self):
         args = autopep8.parse_args(['/nowhere/foo.py',
-                                    '--global-config={0}'.format(os.devnull)],
+                                    '--global-config={}'.format(os.devnull)],
                                    apply_config=True)
         self.assertEqual(args.indent_size, 4)
 
@@ -4882,7 +4970,7 @@ class ConfigurationTests(unittest.TestCase):
         with temporary_file_context('[pep8]\nindent-size=3\n') as filename:
             args = autopep8.parse_args(
                 [os.path.join(FAKE_CONFIGURATION, 'foo.py'),
-                 '--global-config={0}'.format(filename)],
+                 '--global-config={}'.format(filename)],
                 apply_config=True)
             self.assertEqual(args.indent_size, 2)
 
@@ -4890,7 +4978,7 @@ class ConfigurationTests(unittest.TestCase):
         with temporary_file_context('[pep8]\nindent-size=3\n') as filename:
             args = autopep8.parse_args(
                 [os.path.join(FAKE_CONFIGURATION, 'foo.py'),
-                 '--global-config={0}'.format(filename),
+                 '--global-config={}'.format(filename),
                  '--ignore-local-config'],
                 apply_config=True)
             self.assertEqual(args.indent_size, 3)
@@ -4898,7 +4986,7 @@ class ConfigurationTests(unittest.TestCase):
     def test_global_config_without_locals(self):
         with temporary_file_context('[pep8]\nindent-size=3\n') as filename:
             args = autopep8.parse_args(
-                ['/nowhere/foo.py', '--global-config={0}'.format(filename)],
+                ['/nowhere/foo.py', '--global-config={}'.format(filename)],
                 apply_config=True)
             self.assertEqual(args.indent_size, 3)
 
@@ -4906,7 +4994,7 @@ class ConfigurationTests(unittest.TestCase):
         with temporary_file_context('[pep8]\naggressive=1\n') as filename:
             args = autopep8.parse_args(
                 [os.path.join(FAKE_CONFIGURATION, 'foo.py'),
-                 '--global-config={0}'.format(filename)],
+                 '--global-config={}'.format(filename)],
                 apply_config=True)
             self.assertEqual(args.aggressive, 1)
 
@@ -4919,7 +5007,7 @@ aggressive=1
         with temporary_file_context(configstr) as filename:
             args = autopep8.parse_args(
                 [os.path.join(FAKE_CONFIGURATION, 'foo.py'),
-                 '--global-config={0}'.format(filename)],
+                 '--global-config={}'.format(filename)],
                 apply_config=True)
             self.assertEqual(args.aggressive, 1)
 
@@ -5679,8 +5767,6 @@ def f(self):
         with autopep8_context(line, options=['--experimental']) as result:
             self.assertEqual(fixed, result)
 
-    @unittest.skipIf(sys.version_info < (2, 7),
-                     'Python 2.6 does not support dictionary comprehensions')
     def test_e501_experimental_with_complex_reformat(self):
         line = """\
 bork(111, 111, 111, 111, 222, 222, 222, { 'foo': 222, 'qux': 222 }, ((['hello', 'world'], ['yo', 'stella', "how's", 'it'], ['going']), {str(i): i for i in range(10)}, {'bork':((x, x**x) for x in range(10))}), 222, 222, 222, 222, 333, 333, 333, 333)
@@ -6175,7 +6261,7 @@ if True:
         with autopep8_context(line, options=['--experimental']) as result:
             self.assertEqual(fixed, result)
 
-    @unittest.skipIf(sys.version_info >= (3, ), 'syntax error in Python3')
+    @unittest.skipIf(sys.version_info.major >= 3, 'syntax error in Python3')
     def test_e501_print_isnot_function(self):
         line = """\
 
@@ -6191,6 +6277,7 @@ def d():
 """
         with autopep8_context(line, options=['--experimental']) as result:
             self.assertEqual(fixed, result)
+
 
 @contextlib.contextmanager
 def autopep8_context(line, options=None):

@@ -2,6 +2,10 @@
 autopep8
 ========
 
+.. image:: https://img.shields.io/pypi/v/autopep8.svg
+    :target: https://pypi.python.org/pypi/autopep8
+    :alt: PyPI Version
+
 .. image:: https://travis-ci.org/hhatto/autopep8.svg?branch=master
     :target: https://travis-ci.org/hhatto/autopep8
     :alt: Build status
@@ -198,6 +202,7 @@ autopep8 fixes the following issues_ reported by pycodestyle_::
     E241 - Fix extraneous whitespace around keywords.
     E242 - Remove extraneous whitespace around operator.
     E251 - Remove whitespace around parameter '=' sign.
+    E252 - Missing whitespace around parameter equals.
     E26  - Fix spacing after comment hash for inline comments.
     E265 - Fix spacing after comment hash for block comments.
     E27  - Fix extraneous whitespace around keywords.
@@ -228,8 +233,8 @@ autopep8 fixes the following issues_ reported by pycodestyle_::
 autopep8 also fixes some issues not found by pycodestyle_.
 
 - Correct deprecated or non-idiomatic Python code (via ``lib2to3``). Use this
-  for making Python 2.6 and 2.7 code more compatible with Python 3. (This is
-  triggered if ``W690`` is enabled.)
+  for making Python 2.7 code more compatible with Python 3. (This is triggered
+  if ``W690`` is enabled.)
 - Normalize files with mixed line endings.
 - Put a blank line between a class docstring and its first method
   declaration. (Enabled with ``E301``.)
@@ -316,7 +321,7 @@ Testing
 Test cases are in ``test/test_autopep8.py``. They can be run directly via
 ``python test/test_autopep8.py`` or via tox_. The latter is useful for
 testing against multiple Python interpreters. (We currently test against
-CPython versions 2.6, 2.7, 3.3, 3.4, 3.5 and 3.6. We also test against PyPy.)
+CPython versions 2.7, 3.4, 3.5 and 3.6. We also test against PyPy.)
 
 .. _`tox`: https://pypi.python.org/pypi/tox
 
