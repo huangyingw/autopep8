@@ -6,6 +6,25 @@ E113 	unexpected indentation
 E114 	indentation is not a multiple of four (comment)
 E115 	expected an indented block (comment)
 E116 	unexpected indentation (comment)
+                            E226,E24,W50,W690)
+      --hang-closing        hang-closing option passed to pycodestyle
+      --exit-code           change to behavior of exit code. default behavior of
+                            return value, 0 is no differences, 1 is error exit.
+                            return 2 when add this option. 2 is exists
+                            differences.
+    E129 - Fix visual indentation.
+    E131 - Fix hanging indent for unaligned continuation line.
+    E133 - Fix missing indentation for closing bracket.
+    E225 - Fix missing whitespace around operator.
+    E266 - Fix too many leading '#' for block comments.
+    E306 - Expected 1 blank line before a nested definition.
+    E402 - Fix module level import not at top of file
+    E713 - Use 'not in' for test for membership.
+    E714 - Use 'is not' test for object identity.
+    E731 - Use a def when use do not assign a lambda expression.
+    W503 - Fix line break before binary operator.
+    W504 - Fix line break after binary operator.
+    W605 - Fix invalid escape sequence 'x'.
   	 
 E121 (*^) 	continuation line under-indented for hanging indent
 E122 (^) 	continuation line missing indentation or outdented
@@ -39,6 +58,24 @@ E231 	missing whitespace after ‘,’, ‘;’, or ‘:’
   	 
 E241 (*) 	multiple spaces after ‘,’
 E242 (*) 	tab after ‘,’
+
+By default, if ``$HOME/.config/.pycodestyle`` (``~\.pycodestyle`` in Windows
+environment) exists, it will be used as global configuration file. It can
+specify the configuration file with the ``--global-config`` option.
+
+Also, if ``setup.cfg``, ``tox.ini``, ``.pep8`` and ``.flake8`` files exist
+in the directory where the target file exists, it will be used as the
+configuration file.
+
+``pep8``, ``pycodestyle``, and ``flake8`` can be used as a section.
+
+configuration file example::
+
+    [pycodestyle]
+    max_line_length = 120
+    ignore = E501
+
+
   	 
 E251 	unexpected spaces around keyword / parameter equals
   	 
